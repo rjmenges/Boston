@@ -29,8 +29,9 @@
  *   Phi3ders   6 x 6 x 6 x 6 x (N+1)      raw Phi3^(k)
  *   Phi4ders   6 x 6 x 6 x 6 x 6 x (N+1)  raw Phi4^(k)
  *
- * COMPILE:
- *   mex -O cr3bp_stt_time_derivatives_mex.c cr3bp_stt_time_derivatives.cpp
+ * COMPILE (two-step to ensure the C gateway uses the legacy MEX API):
+ *   mex -c -O cr3bp_stt_time_derivatives.cpp
+ *   mex -O cr3bp_stt_time_derivatives_mex.c cr3bp_stt_time_derivatives.o
  *
  *=========================================================================*/
 
