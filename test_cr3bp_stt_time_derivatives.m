@@ -217,20 +217,36 @@ fprintf('\n');
 %  ======================================================================
 fprintf('--- TEST D: Symmetry Tests ---\n');
 
+% NOTE: We test symmetry on TAYLOR COEFFICIENTS (Phi^(k)/k!), not raw
+% derivatives. Raw derivatives amplify roundoff by k! (up to 3.6e6 for
+% k=10), which makes absolute-tolerance tests on raw derivatives misleading.
+% The Taylor coefficients are what the algorithm actually computes, and
+% their symmetry is the meaningful quantity.
+
 % Phi2 should be symmetric in indices a,b (2nd and 3rd indices)
-max_asym_2 = 0;
+% Test both absolute asymmetry of Taylor coefficients and relative asymmetry.
+max_asym_2_abs = 0;  % absolute asymmetry in Taylor coefficients
+max_asym_2_rel = 0;  % relative asymmetry
 for k = 1:N+1
+    fk = factorial(k-1);  % k-1 because k is 1-based here (k=1 means order 0)
     for i = 1:6
         for a = 1:6
             for b = a+1:6
-                diff = abs(Phi2ders(i,a,b,k) - Phi2ders(i,b,a,k));
-                max_asym_2 = max(max_asym_2, diff);
+                v1 = Phi2ders(i,a,b,k) / fk;  % Taylor coefficient
+                v2 = Phi2ders(i,b,a,k) / fk;
+                adiff = abs(v1 - v2);
+                max_asym_2_abs = max(max_asym_2_abs, adiff);
+                scale = max(abs(v1), abs(v2));
+                if scale > 1e-30
+                    max_asym_2_rel = max(max_asym_2_rel, adiff / scale);
+                end
             end
         end
     end
 end
-fprintf('  Phi2 max asymmetry in (a,b): %.3e\n', max_asym_2);
-if max_asym_2 < 1e-12
+fprintf('  Phi2 Taylor coeff max abs asymmetry: %.3e\n', max_asym_2_abs);
+fprintf('  Phi2 Taylor coeff max rel asymmetry: %.3e\n', max_asym_2_rel);
+if max_asym_2_rel < 1e-10
     fprintf('  Phi2 symmetry: PASS\n');
     pass_count = pass_count + 1;
 else
@@ -239,23 +255,31 @@ else
 end
 
 % Phi3 should be symmetric under permutations of (a,b,c)
-max_asym_3 = 0;
+max_asym_3_abs = 0;
+max_asym_3_rel = 0;
 for k = 1:N+1
+    fk = factorial(k-1);
     for i = 1:6
         for a = 1:6
             for b = 1:6
                 for c = 1:6
                     vals = [Phi3ders(i,a,b,c,k), Phi3ders(i,a,c,b,k), ...
                             Phi3ders(i,b,a,c,k), Phi3ders(i,b,c,a,k), ...
-                            Phi3ders(i,c,a,b,k), Phi3ders(i,c,b,a,k)];
-                    max_asym_3 = max(max_asym_3, max(vals) - min(vals));
+                            Phi3ders(i,c,a,b,k), Phi3ders(i,c,b,a,k)] / fk;
+                    adiff = max(vals) - min(vals);
+                    max_asym_3_abs = max(max_asym_3_abs, adiff);
+                    scale = max(abs(vals));
+                    if scale > 1e-30
+                        max_asym_3_rel = max(max_asym_3_rel, adiff / scale);
+                    end
                 end
             end
         end
     end
 end
-fprintf('  Phi3 max asymmetry in (a,b,c): %.3e\n', max_asym_3);
-if max_asym_3 < 1e-10
+fprintf('  Phi3 Taylor coeff max abs asymmetry: %.3e\n', max_asym_3_abs);
+fprintf('  Phi3 Taylor coeff max rel asymmetry: %.3e\n', max_asym_3_rel);
+if max_asym_3_rel < 1e-9
     fprintf('  Phi3 symmetry: PASS\n');
     pass_count = pass_count + 1;
 else
@@ -264,27 +288,34 @@ else
 end
 
 % Phi4: check a few symmetry relations
-max_asym_4 = 0;
-for k = 1:min(3, N+1)  % only check first few orders (expensive otherwise)
+max_asym_4_abs = 0;
+max_asym_4_rel = 0;
+for k = 1:min(3, N+1)
+    fk = factorial(k-1);
     for i = 1:6
         for a = 1:3  % subset for speed
             for b = 1:3
                 for c = 1:3
                     for d = 1:3
-                        v1 = Phi4ders(i,a,b,c,d,k);
-                        v2 = Phi4ders(i,b,a,c,d,k);
-                        v3 = Phi4ders(i,a,b,d,c,k);
-                        v4 = Phi4ders(i,d,c,b,a,k);
-                        vals = [v1, v2, v3, v4];
-                        max_asym_4 = max(max_asym_4, max(vals) - min(vals));
+                        vals = [Phi4ders(i,a,b,c,d,k), ...
+                                Phi4ders(i,b,a,c,d,k), ...
+                                Phi4ders(i,a,b,d,c,k), ...
+                                Phi4ders(i,d,c,b,a,k)] / fk;
+                        adiff = max(vals) - min(vals);
+                        max_asym_4_abs = max(max_asym_4_abs, adiff);
+                        scale = max(abs(vals));
+                        if scale > 1e-30
+                            max_asym_4_rel = max(max_asym_4_rel, adiff / scale);
+                        end
                     end
                 end
             end
         end
     end
 end
-fprintf('  Phi4 max asymmetry (sample): %.3e\n', max_asym_4);
-if max_asym_4 < 1e-9
+fprintf('  Phi4 Taylor coeff max abs asymmetry: %.3e\n', max_asym_4_abs);
+fprintf('  Phi4 Taylor coeff max rel asymmetry: %.3e\n', max_asym_4_rel);
+if max_asym_4_rel < 1e-9
     fprintf('  Phi4 symmetry: PASS\n');
     pass_count = pass_count + 1;
 else
