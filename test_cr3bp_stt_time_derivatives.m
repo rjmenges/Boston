@@ -18,11 +18,10 @@ fprintf('=== CR3BP STT Time Derivatives Test Suite ===\n\n');
 %% Compile MEX if needed
 if ~exist('cr3bp_stt_time_derivatives_mex', 'file')
     fprintf('Compiling MEX file...\n');
-    % -R2017b selects the legacy C MEX API (mexFunction entry point)
-    % which is required since we use mex.h / mexFunction, not the
-    % newer C++ API introduced in R2018a.
-    mex('-O', '-R2017b', ...
-        'cr3bp_stt_time_derivatives_mex.cpp', ...
+    % The gateway is a .c file to use the legacy C MEX API (mexFunction).
+    % The engine is a .cpp file linked via extern "C".
+    mex('-O', ...
+        'cr3bp_stt_time_derivatives_mex.c', ...
         'cr3bp_stt_time_derivatives.cpp');
     fprintf('Compilation successful.\n\n');
 end

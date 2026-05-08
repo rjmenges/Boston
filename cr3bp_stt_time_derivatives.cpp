@@ -38,7 +38,41 @@
 #include <cmath>
 #include <cstring>
 #include <vector>
+#include <algorithm>
 #include <stdexcept>
+
+/* ---- Internal constants ---- */
+static const int NMAX = CR3BP_NMAX;
+
+/* ---- Flat-index helpers (0-based, column-major) ---- */
+static inline int idx2(int i, int a)
+{ return i + 6*a; }
+
+static inline int idx3(int i, int a, int b)
+{ return i + 6*(a + 6*b); }
+
+static inline int idx4(int i, int a, int b, int c)
+{ return i + 6*(a + 6*(b + 6*c)); }
+
+static inline int idx5(int i, int a, int b, int c, int d)
+{ return i + 6*(a + 6*(b + 6*(c + 6*d))); }
+
+/*=========================================================================
+ * TaylorScalar: truncated Taylor series for a single scalar quantity.
+ *
+ *   c[k] = f^(k)(t0) / k!     for k = 0 ... Nord
+ *=========================================================================*/
+struct TaylorScalar {
+    int Nord;
+    std::vector<double> c;
+
+    TaylorScalar() : Nord(0), c(1, 0.0) {}
+    explicit TaylorScalar(int N) : Nord(N), c(N+1, 0.0) {}
+    TaylorScalar(int N, double val) : Nord(N), c(N+1, 0.0) { c[0] = val; }
+
+    double  operator[](int k) const { return c[k]; }
+    double& operator[](int k)       { return c[k]; }
+};
 
 /* ---- factorial table ---- */
 static double fact_table[NMAX+2];
@@ -103,7 +137,8 @@ static const int SZ4 = 7776;  /* 6x6x6x6x6 */
 /*=========================================================================
  * MAIN FUNCTION
  *=========================================================================*/
-void compute_cr3bp_stt_taylor_coefficients(
+extern "C"
+int compute_cr3bp_stt_taylor_coefficients(
     const double* X0,
     const double* Phi1_0,
     const double* Phi2_0,
@@ -120,7 +155,7 @@ void compute_cr3bp_stt_taylor_coefficients(
     init_factorials();
 
     if (N < 0 || N > NMAX)
-        throw std::runtime_error("N must be in [0, NMAX]");
+        return -1;  /* error: N out of range */
 
     const int K = N;          /* number of derivative orders */
     const int Kp1 = K + 1;   /* number of Taylor coefficients: 0..K */
@@ -1684,4 +1719,6 @@ void compute_cr3bp_stt_taylor_coefficients(
         for (int idx = 0; idx < SZ4; ++idx)
             Phi4ders[idx + SZ4*k] = fk * P4c[k*SZ4 + idx];
     }
+
+    return 0;  /* success */
 }
