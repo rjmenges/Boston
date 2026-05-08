@@ -18,22 +18,24 @@ fprintf('=== CR3BP STT Time Derivatives Test Suite ===\n\n');
 %% Compile MEX if needed
 if ~exist('cr3bp_stt_time_derivatives_mex', 'file')
     fprintf('Compiling MEX file...\n');
-    % Two-step build: compile the C++ engine to an object file first,
-    % then link the C gateway against it. This prevents mex from using
-    % clang++ for the .c file (which would trigger the new C++ MEX API).
-    fprintf('  Step 1: Compiling C++ engine...\n');
-    mex('-c', '-O', 'cr3bp_stt_time_derivatives.cpp');
-    fprintf('  Step 2: Linking MEX gateway...\n');
-    obj_ext = mexext; % e.g. 'mexmaca64'
-    % The object file name depends on OS
-    if ispc
-        obj_file = 'cr3bp_stt_time_derivatives.obj';
+    if exist('cr3bp_stt_time_derivatives_gen.c', 'file')
+        % Single-step pure-C build using the generated optimized code
+        fprintf('  Using generated C implementation (single-step build)...\n');
+        mex('-O', 'cr3bp_stt_time_derivatives_mex.c', ...
+            'cr3bp_stt_time_derivatives_gen.c');
     else
-        obj_file = 'cr3bp_stt_time_derivatives.o';
+        % Fallback: Two-step build with the C++ engine
+        fprintf('  Step 1: Compiling C++ engine...\n');
+        mex('-c', '-O', 'cr3bp_stt_time_derivatives.cpp');
+        fprintf('  Step 2: Linking MEX gateway...\n');
+        if ispc
+            obj_file = 'cr3bp_stt_time_derivatives.obj';
+        else
+            obj_file = 'cr3bp_stt_time_derivatives.o';
+        end
+        mex('-O', 'cr3bp_stt_time_derivatives_mex.c', obj_file);
+        if exist(obj_file, 'file'), delete(obj_file); end
     end
-    mex('-O', 'cr3bp_stt_time_derivatives_mex.c', obj_file);
-    % Clean up object file
-    if exist(obj_file, 'file'), delete(obj_file); end
     fprintf('Compilation successful.\n\n');
 end
 
